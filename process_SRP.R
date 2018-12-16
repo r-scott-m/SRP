@@ -1,6 +1,8 @@
 setwd('Desktop/SRP/')
 #####################
 #############functions
+###!!!
+
 AddCommon <- function(data){
   library('org.Sc.sgd.db')
   xx= as.list(org.Sc.sgdCOMMON2ORF)
@@ -54,6 +56,5 @@ srp_tidy <- df_srp %>%
 names(shapes) = c("feature","description")
 
 final <- left_join(srp_tidy,shapes,by="feature")
-
 
 
