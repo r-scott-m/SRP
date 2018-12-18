@@ -1,0 +1,84 @@
+---
+title: "SRPplot"
+author: "Scott McIsaac"
+date: "12/17/2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=TRUE}
+#SRPplot
+library(tidyverse)
+#read in the mass spec data from data
+df <- read.delim(file="YAI1rc_sum.txt",header=TRUE,sep="\t")
+df <- as.tibble(df)
+
+#define list of genes to filter on
+List <- c("SRP14","SRP101","SRP102","SRP54","SEC65","SRP68","SRP72","SRP21")
+
+#get only genes I care about
+df_srp <- df %>% 
+  dplyr::filter(Gene %in% List) %>%
+  dplyr::select(-c("Protein","Description","Group","Peptides","Collapsed","Bridge"))
+
+#convert to tidy format: use grepl to add group information
+#groups 1 [WT], 2 [SRP], 3[SRPreceptor]; receptor #complex [0], receptor [1]
+srp_tidy <- df_srp %>% 
+  gather(feature,value,-Gene) %>% 
+  mutate(group = ifelse(grepl("rec",feature),3,
+                          ifelse(grepl("WT.",feature),2,1))) %>%
+  mutate(receptor = ifelse(grepl("SRP101",Gene),"SRP Receptor",
+                           ifelse(grepl("SRP102",Gene),"SRP Receptor","SRP Complex")))
+
+#get WT or TEF
+srp_tidyTEF <- srp_tidy %>%
+  filter(grepl("WT",feature) | grepl("TEF",feature))
+
+#plot
+ggplot(srp_tidy,aes(x=Gene,y=value)) + 
+  geom_bar(
+    aes(color = feature, fill = feature),
+    stat = "identity", position = position_dodge(0.8),
+    width = 0.7
+  )
+
+ggplot(srp_tidyTEF,aes(x=Gene,y=value)) + 
+  geom_bar(
+    aes(color = feature, fill = feature),
+    stat = "identity", position = position_dodge(0.8),
+    width = 0.7
+  ) + scale_fill_brewer(palette="Paired") + theme_minimal()
+
+
+
+ggplot(srp_tidyTEF,aes(x=Gene,y=value)) + 
+  geom_bar(
+    aes(color = feature, fill = feature),
+    stat = "identity", position = position_dodge(0.8),
+    width = 0.7
+  ) + facet_wrap(~receptor, scales="free", ncol = 1) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#use factor with levels to specify plotting order of data in ggplot
+srp_tidyTEF$Gene <- factor(srp_tidyTEF$Gene, levels=c("SRP14","SRP21","SRP54","SEC65","SRP68","SRP72","SRP101","SRP102"))
+
+colnames(srp_tidyTEF)[2] <- "Sample"
+colnames(srp_tidyTEF)[3] <- "Level"
+
+srp_tidyTEF$Sample <- factor(srp_tidyTEF$Sample, levels = 
+                               c("WT.MATa","ChrI.TEF1.SRPrec.32",
+                                 "ChrI.TEF1.SRP.1aAlpha",
+                                 "ChrI.TEF1.SRP.15"))
+
+ggplot(srp_tidyTEF,aes(x=Gene,y=Level)) + 
+  geom_bar(
+    aes(color = Sample, fill = Sample),
+    stat = "identity", position = position_dodge(0.8),
+    width = 0.7
+  ) + facet_wrap(~receptor, scales="free", ncol = 1) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+                    
+```
+
+
